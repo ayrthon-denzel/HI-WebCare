@@ -58,6 +58,22 @@ const label = {
   improvement: "À améliorer",
   passed: "Correct",
 };
+function redesignDecision(r) {
+  if (r.redesign) return r.redesign;
+  const health = Number(r.scores?.["Website Health"] ?? 100);
+  const ux = Number(r.scores?.["Design / UX"] ?? r.scores?.UX ?? 100);
+  const mobile = Number(r.scores?.Mobile ?? 100);
+  const critical = Number(r.counts?.critical || 0);
+  const important = Number(r.counts?.important || 0);
+  const recommended =
+    critical > 0 || important >= 3 || health < 70 || ux < 65 || mobile < 65;
+  return {
+    recommended,
+    message: recommended
+      ? "Le diagnostic révèle des problèmes structurels qui justifient une nouvelle version du site."
+      : "Le site ne nécessite pas de refonte complète. Des optimisations ciblées suffisent.",
+  };
+}
 function reportView() {
   const r = report,
     cats = [
@@ -99,13 +115,16 @@ function issuesView() {
     : '<div class="panel">Aucun contrôle dans cette vue.</div>';
 }
 function bindReport() {
-  const actions = document.querySelector(".report-actions");
-  if (actions && !actions.querySelector("[data-concept]")) {
-    actions.insertAdjacentHTML(
-      "beforeend",
-      '<button class="concept-link" data-concept>Voir la refonte proposée →</button>',
+  const head = document.querySelector(".report-head");
+  const redesign = redesignDecision(report);
+  if (head && !document.querySelector(".redesign-offer")) {
+    head.insertAdjacentHTML(
+      "afterend",
+      redesign.recommended
+        ? `<section class="redesign-offer"><div><span>REFONTE RECOMMANDÉE</span><h2>Ce site mérite une version améliorée.</h2><p>${esc(redesign.message)}</p></div><button class="concept-link" data-concept>Voir la refonte proposée →</button></section>`
+        : `<section class="redesign-offer no-redesign"><div><span>OPTIMISATIONS CIBLÉES</span><h2>Une refonte complète n’est pas nécessaire.</h2><p>${esc(redesign.message)}</p></div></section>`,
     );
-    actions.querySelector("[data-concept]").addEventListener("click", () => {
+    document.querySelector("[data-concept]")?.addEventListener("click", () => {
       history.pushState({}, "", "/concept/" + report.id);
       app.innerHTML = conceptView();
       bindConcept();
@@ -157,7 +176,7 @@ function conceptView() {
   const priorities = report.issues
     .filter((x) => x.level === "critical" || x.level === "important")
     .slice(0, 4);
-  return `<section class="concept-shell"><div class="concept-notice"><span>CONCEPT NON OFFICIEL · GÉNÉRÉ PAR HI WEBCARE</span><div class="concept-tools"><a href="/api/concepts/${esc(report.id)}/download">Télécharger le code (.zip)</a><button data-back-report>Retour au diagnostic</button></div></div><nav class="concept-nav"><div class="concept-brand">${esc(c.brand || report.meta?.title || new URL(report.url).hostname)}</div><div>${(
+  return `<section class="concept-shell"><div class="concept-notice"><span>REFONTE PROPOSÉE · GÉNÉRÉE PAR HI WEBCARE</span><div class="concept-tools"><button data-new-scan>Analyser un autre site</button><button data-back-report>Retour au diagnostic</button></div></div><nav class="concept-nav"><div class="concept-brand">${esc(c.brand || report.meta?.title || new URL(report.url).hostname)}</div><div>${(
     c.navigation || []
   )
     .slice(0, 4)
@@ -172,9 +191,12 @@ function conceptView() {
     )
     .join(
       "",
-    )}</div></section><section class="concept-proof"><div><span class="concept-kicker">Ce concept corrige en priorité</span><h2>${report.counts.critical + report.counts.important} points à fort impact détectés.</h2></div><ul>${priorities.map((x) => `<li>${esc(x.title)}</li>`).join("")}</ul></section><section class="concept-final"><span>Digital • Software • Growth</span><h2>Prêt à transformer ce concept en véritable site ?</h2><p>HI MARKETING peut adapter cette direction à votre identité, vos contenus et vos fonctionnalités réelles.</p><a href="https://hi-marketing-africa.onrender.com">Faire réaliser cette refonte</a></section><footer class="concept-footer"><b>HI WebCare</b><span>Cette prévisualisation ne modifie pas le site original et ne constitue pas le site officiel de l’entreprise.</span></footer></section>`;
+    )}</div></section><section class="concept-proof"><div><span class="concept-kicker">Ce concept corrige en priorité</span><h2>${report.counts.critical + report.counts.important} points à fort impact détectés.</h2></div><ul>${priorities.map((x) => `<li>${esc(x.title)}</li>`).join("")}</ul></section><section class="concept-final"><span>VOTRE VERSION AMÉLIORÉE</span><h2>Cette refonte vous convient ?</h2><p>Téléchargez maintenant le code de cette version améliorée. Le ZIP contient le site présenté ci-dessus avec ses fichiers HTML et CSS.</p><div class="concept-final-actions"><a href="/api/concepts/${esc(report.id)}/download">Télécharger ce site (.zip)</a><a class="secondary" href="https://hi-marketing-africa.onrender.com">Faire finaliser la refonte</a></div></section><footer class="concept-footer"><b>HI WebCare</b><span>Cette prévisualisation ne modifie pas le site original et ne constitue pas le site officiel de l’entreprise.</span></footer></section>`;
 }
 function bindConcept() {
+  document
+    .querySelector("[data-new-scan]")
+    ?.addEventListener("click", showLanding);
   document
     .querySelector("[data-back-report]")
     ?.addEventListener("click", () => {
@@ -214,6 +236,12 @@ async function init() {
   if (concept) {
     await loadReport(concept[1]);
     if (!report) return;
+    if (!redesignDecision(report).recommended) {
+      history.replaceState({}, "", `/report/${report.id}`);
+      app.innerHTML = reportView();
+      bindReport();
+      return;
+    }
     app.innerHTML = conceptView();
     bindConcept();
     return;
