@@ -10,7 +10,8 @@ Centre de diagnostic défensif pour sites web publics, par **HI MARKETING — Di
 - mesures réelles de réponse et poids HTML
 - captures Playwright desktop/mobile et détection de débordement
 - scores déterministes documentés et rapport partageable `/report/{id}`
-- limites : 5 scans/heure/IP, 5 Mo/page, timeout 25 s
+- crawl contrôlé jusqu’à 10 pages, détection inter-pages et preuves par URL
+- limites : 5 scans/heure/IP, 2,5 Mo/page crawlée, timeout 25 s
 
 ## Installation
 
