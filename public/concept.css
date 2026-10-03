@@ -28,6 +28,19 @@
   font: 500 12px DM Sans;
   cursor: pointer;
 }
+.concept-tools {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.concept-tools a {
+  background: #d9bd86;
+  color: #0d1d2c;
+  padding: 9px 13px;
+  text-decoration: none;
+  font-weight: 700;
+  letter-spacing: 0;
+}
 .concept-nav {
   max-width: 1180px;
   margin: auto;
@@ -217,6 +230,10 @@
   .concept-proof,
   .concept-footer {
     gap: 15px;
+  }
+  .concept-notice {
+    align-items: flex-start;
+    flex-direction: column;
   }
   .concept-nav > div:last-child a:not(.concept-nav-cta) {
     display: none;
