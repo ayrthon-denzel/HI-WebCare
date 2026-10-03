@@ -5,10 +5,17 @@ import { analyzeHtml, computeScores } from './analyzers.js';
 async function textCheck(origin,path){try{const r=await safeFetch(new URL(path,origin).href);const text=(await r.text()).slice(0,500000);return{verified:true,status:r.status,present:r.ok,content:text}}catch(e){return{verified:false,present:false,error:e.message}}}
 export async function auditSite(input, onProgress=()=>{}) {
   const started=Date.now(); const valid=await validatePublicUrl(input); onProgress(10,'Connexion sécurisée au site');
-  const t=Date.now(), response=await safeFetch(valid.href); const buf=Buffer.from(await response.arrayBuffer());
+  const t=Date.now(), response=await safeFetch(valid.href);
+  if (response.status >= 400) {
+    const challenged = response.status === 403 && (response.headers.get('cf-mitigated') || /cloudflare/i.test(response.headers.get('server') || ''));
+    throw new Error(challenged ? 'Le site protège cette page contre les robots. Analyse non vérifiée.' : `La page répond avec une erreur HTTP ${response.status}.`);
+  }
+  const buf=Buffer.from(await response.arrayBuffer());
   if(buf.length>5_000_000) throw new Error('La page dépasse la taille maximale autorisée (5 Mo).');
   const type=response.headers.get('content-type')||''; if(!type.includes('text/html')) throw new Error('Cette URL ne renvoie pas une page HTML.');
-  const html=buf.toString('utf8'), finalUrl=response.url||valid.href, headers=Object.fromEntries(response.headers.entries()); onProgress(30,'Analyse SEO et structure');
+  const html=buf.toString('utf8'), finalUrl=response.url||valid.href;
+  const safeHeaderNames=['content-type','content-length','content-encoding','cache-control','content-security-policy','strict-transport-security','x-content-type-options','referrer-policy','permissions-policy','server','x-powered-by'];
+  const headers=Object.fromEntries(safeHeaderNames.map(name=>[name,response.headers.get(name)]).filter(([,value])=>value)); onProgress(30,'Analyse SEO et structure');
   const base=analyzeHtml(html,finalUrl,headers,response.status,{ms:Date.now()-t,bytes:buf.length});
   const [robots,sitemap]=await Promise.all([textCheck(finalUrl,'/robots.txt'),textCheck(finalUrl,'/sitemap.xml')]); onProgress(50,'Contrôle robots.txt et sitemap');
   const techIssues=[];
