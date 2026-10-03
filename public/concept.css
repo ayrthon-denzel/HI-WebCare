@@ -207,6 +207,17 @@
   background: #d0aa69;
   color: #0d1d2c;
 }
+.concept-final-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.concept-final-actions .secondary {
+  background: transparent;
+  border: 1px solid #d0aa69;
+  color: #fff;
+}
 .concept-footer {
   max-width: 1180px;
   margin: auto;
