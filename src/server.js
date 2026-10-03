@@ -78,12 +78,10 @@ app.post("/api/scans", (req, res) => {
       .status(429)
       .json({ error: "Limite de 5 scans par heure atteinte." });
   if (activeScans >= MAX_CONCURRENT_SCANS)
-    return res
-      .status(503)
-      .json({
-        error:
-          "Le scanner traite déjà plusieurs analyses. Réessayez dans un instant.",
-      });
+    return res.status(503).json({
+      error:
+        "Le scanner traite déjà plusieurs analyses. Réessayez dans un instant.",
+    });
   if (activeByIp.has(ip))
     return res
       .status(429)
@@ -148,6 +146,9 @@ app.get("/api/reports/:id", validId, (req, res) => {
   res.json(report);
 });
 app.get("/report/:id", validId, (_, res) =>
+  res.sendFile(path.join(dir, "../public/index.html")),
+);
+app.get("/concept/:id", validId, (_, res) =>
   res.sendFile(path.join(dir, "../public/index.html")),
 );
 app.get("/", (_, res) => res.sendFile(path.join(dir, "../public/index.html")));
