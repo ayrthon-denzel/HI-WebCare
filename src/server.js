@@ -4,7 +4,12 @@ import helmet from "helmet";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { auditSite } from "./audit.js";
-import { conceptCss, conceptHtml, conceptReadme } from "./concept-export.js";
+import {
+  assessRedesign,
+  conceptCss,
+  conceptHtml,
+  conceptReadme,
+} from "./concept-export.js";
 
 const app = express(),
   dir = path.dirname(fileURLToPath(import.meta.url));
@@ -107,6 +112,7 @@ app.post("/api/scans", (req, res) => {
   )
     .then((report) => {
       report.id = id;
+      report.redesign = assessRedesign(report);
       reports.set(id, report);
       jobs.set(id, {
         id,
@@ -151,6 +157,11 @@ app.get("/api/concepts/:id/download", validId, (req, res, next) => {
   const report = reports.get(req.params.id);
   if (!report)
     return res.status(404).json({ error: "Concept introuvable ou expiré." });
+  const redesign = report.redesign || assessRedesign(report);
+  if (!redesign.recommended)
+    return res.status(409).json({
+      error: "Ce diagnostic ne recommande pas de refonte complète.",
+    });
   const archive = archiver("zip", { zlib: { level: 9 } });
   archive.on("error", next);
   res.attachment(`hi-webcare-refonte-${req.params.id.slice(0, 8)}.zip`);
