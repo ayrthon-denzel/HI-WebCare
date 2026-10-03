@@ -103,7 +103,7 @@ function bindReport() {
   if (actions && !actions.querySelector("[data-concept]")) {
     actions.insertAdjacentHTML(
       "beforeend",
-      '<button class="concept-link" data-concept>Voir la version améliorée →</button>',
+      '<button class="concept-link" data-concept>Voir la refonte proposée →</button>',
     );
     actions.querySelector("[data-concept]").addEventListener("click", () => {
       history.pushState({}, "", "/concept/" + report.id);
@@ -157,7 +157,7 @@ function conceptView() {
   const priorities = report.issues
     .filter((x) => x.level === "critical" || x.level === "important")
     .slice(0, 4);
-  return `<section class="concept-shell"><div class="concept-notice"><span>CONCEPT NON OFFICIEL · GÉNÉRÉ PAR HI WEBCARE</span><button data-back-report>Retour au diagnostic</button></div><nav class="concept-nav"><div class="concept-brand">${esc(c.brand || report.meta?.title || new URL(report.url).hostname)}</div><div>${(
+  return `<section class="concept-shell"><div class="concept-notice"><span>CONCEPT NON OFFICIEL · GÉNÉRÉ PAR HI WEBCARE</span><div class="concept-tools"><a href="/api/concepts/${esc(report.id)}/download">Télécharger le code (.zip)</a><button data-back-report>Retour au diagnostic</button></div></div><nav class="concept-nav"><div class="concept-brand">${esc(c.brand || report.meta?.title || new URL(report.url).hostname)}</div><div>${(
     c.navigation || []
   )
     .slice(0, 4)
@@ -198,7 +198,10 @@ async function loadReport(id, push = false) {
   const response = await fetch("/api/reports/" + id);
   if (!response.ok) {
     app.innerHTML =
-      '<section class="progress"><h2>Rapport expiré ou introuvable</h2><a href="/">Lancer une nouvelle analyse</a></section>';
+      '<section class="progress"><h2>Cette analyse a expiré</h2><p>Les anciennes analyses peuvent disparaître après une mise à jour du service. Relancez le scan pour générer immédiatement une nouvelle refonte.</p><button class="cta" data-new-scan>Lancer une nouvelle analyse</button></section>';
+    document
+      .querySelector("[data-new-scan]")
+      ?.addEventListener("click", showLanding);
     return;
   }
   report = await response.json();
@@ -210,6 +213,7 @@ async function init() {
   const concept = location.pathname.match(/^\/concept\/([^/]+)/);
   if (concept) {
     await loadReport(concept[1]);
+    if (!report) return;
     app.innerHTML = conceptView();
     bindConcept();
     return;
