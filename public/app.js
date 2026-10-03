@@ -1,6 +1,6 @@
 document.head.insertAdjacentHTML(
   "beforeend",
-  '<link rel="stylesheet" href="/report.css">',
+  '<link rel="stylesheet" href="/report.css"><link rel="stylesheet" href="/concept.css">',
 );
 const app = document.querySelector("#app");
 let report = null,
@@ -99,6 +99,18 @@ function issuesView() {
     : '<div class="panel">Aucun contrôle dans cette vue.</div>';
 }
 function bindReport() {
+  const actions = document.querySelector(".report-actions");
+  if (actions && !actions.querySelector("[data-concept]")) {
+    actions.insertAdjacentHTML(
+      "beforeend",
+      '<button class="concept-link" data-concept>Voir la version améliorée →</button>',
+    );
+    actions.querySelector("[data-concept]").addEventListener("click", () => {
+      history.pushState({}, "", "/concept/" + report.id);
+      app.innerHTML = conceptView();
+      bindConcept();
+    });
+  }
   document.querySelectorAll(".report-actions a").forEach((button) => {
     button.addEventListener("click", (event) => {
       event.preventDefault();
@@ -122,6 +134,55 @@ function bindReport() {
       }),
   );
 }
+function safeLink(value) {
+  try {
+    const url = new URL(value || report.url, report.url);
+    return ["http:", "https:", "mailto:", "tel:"].includes(url.protocol)
+      ? url.href
+      : report.url;
+  } catch {
+    return report.url;
+  }
+}
+function conceptView() {
+  const c = report.meta?.content || {};
+  const services = c.sections?.length
+    ? c.sections
+    : [
+        "Une présence plus claire",
+        "Une expérience mobile fluide",
+        "Un parcours orienté conversion",
+      ];
+  const contact = safeLink(c.whatsapp || c.phone || c.email || report.url);
+  const priorities = report.issues
+    .filter((x) => x.level === "critical" || x.level === "important")
+    .slice(0, 4);
+  return `<section class="concept-shell"><div class="concept-notice"><span>CONCEPT NON OFFICIEL · GÉNÉRÉ PAR HI WEBCARE</span><button data-back-report>Retour au diagnostic</button></div><nav class="concept-nav"><div class="concept-brand">${esc(c.brand || report.meta?.title || new URL(report.url).hostname)}</div><div>${(
+    c.navigation || []
+  )
+    .slice(0, 4)
+    .map((x) => `<a href="#services">${esc(x)}</a>`)
+    .join(
+      "",
+    )}<a class="concept-nav-cta" href="${esc(contact)}">Nous contacter</a></div></nav><header class="concept-hero"><div><span class="concept-kicker">Une expérience repensée</span><h1>${esc(c.headline || report.meta?.title || "Votre activité mérite une présence plus forte.")}</h1><p>${esc(c.summary || "Une présentation plus claire, plus rapide et pensée pour transformer chaque visite en opportunité.")}</p><div class="concept-buttons"><a href="${esc(contact)}">Commencer maintenant</a><a class="ghost" href="#services">Découvrir</a></div></div><aside><span>DIAGNOSTIC HI WEBCARE</span><b>${report.scores["Website Health"]}</b><small>Score ayant guidé cette proposition</small></aside></header><section id="services" class="concept-services"><span class="concept-kicker">L’essentiel, immédiatement compréhensible</span><h2>Une structure conçue pour informer, rassurer et convertir.</h2><div>${services
+    .slice(0, 6)
+    .map(
+      (s, i) =>
+        `<article><small>0${i + 1}</small><h3>${esc(s)}</h3><p>Une présentation claire, accessible sur mobile et organisée autour des besoins réels du visiteur.</p></article>`,
+    )
+    .join(
+      "",
+    )}</div></section><section class="concept-proof"><div><span class="concept-kicker">Ce concept corrige en priorité</span><h2>${report.counts.critical + report.counts.important} points à fort impact détectés.</h2></div><ul>${priorities.map((x) => `<li>${esc(x.title)}</li>`).join("")}</ul></section><section class="concept-final"><span>Digital • Software • Growth</span><h2>Prêt à transformer ce concept en véritable site ?</h2><p>HI MARKETING peut adapter cette direction à votre identité, vos contenus et vos fonctionnalités réelles.</p><a href="https://hi-marketing-africa.onrender.com">Faire réaliser cette refonte</a></section><footer class="concept-footer"><b>HI WebCare</b><span>Cette prévisualisation ne modifie pas le site original et ne constitue pas le site officiel de l’entreprise.</span></footer></section>`;
+}
+function bindConcept() {
+  document
+    .querySelector("[data-back-report]")
+    ?.addEventListener("click", () => {
+      history.pushState({}, "", `/report/${report.id}`);
+      app.innerHTML = reportView();
+      bindReport();
+    });
+}
 function showLanding() {
   report = null;
   active = "Overview";
@@ -129,21 +190,30 @@ function showLanding() {
   history.pushState({}, "", "/");
   app.innerHTML = landing();
   bindLanding();
-  requestAnimationFrame(() => document.querySelector('#scan input')?.focus());
+  requestAnimationFrame(() => document.querySelector("#scan input")?.focus());
 }
 async function loadReport(id, push = false) {
-  app.innerHTML = '<section class="progress"><h2>Chargement du rapport…</h2></section>';
-  const response = await fetch('/api/reports/' + id);
+  app.innerHTML =
+    '<section class="progress"><h2>Chargement du rapport…</h2></section>';
+  const response = await fetch("/api/reports/" + id);
   if (!response.ok) {
-    app.innerHTML = '<section class="progress"><h2>Rapport expiré ou introuvable</h2><a href="/">Lancer une nouvelle analyse</a></section>';
+    app.innerHTML =
+      '<section class="progress"><h2>Rapport expiré ou introuvable</h2><a href="/">Lancer une nouvelle analyse</a></section>';
     return;
   }
   report = await response.json();
-  if (push) history.pushState({}, "", '/report/' + id);
+  if (push) history.pushState({}, "", "/report/" + id);
   app.innerHTML = reportView();
   bindReport();
 }
 async function init() {
+  const concept = location.pathname.match(/^\/concept\/([^/]+)/);
+  if (concept) {
+    await loadReport(concept[1]);
+    app.innerHTML = conceptView();
+    bindConcept();
+    return;
+  }
   const m = location.pathname.match(/^\/report\/([^/]+)/);
   if (!m) {
     app.innerHTML = landing();
@@ -152,5 +222,5 @@ async function init() {
   }
   await loadReport(m[1]);
 }
-window.addEventListener('popstate', () => init());
+window.addEventListener("popstate", () => init());
 init();
