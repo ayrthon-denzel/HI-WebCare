@@ -9,6 +9,6 @@ services:
       - key: NODE_ENV
         value: production
       - key: MAX_PAGES
-        value: 5
+        value: 10
       - key: SCAN_TIMEOUT_MS
         value: 25000
