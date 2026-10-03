@@ -1,0 +1,10 @@
+import express from 'express'; import helmet from 'helmet'; import path from 'node:path'; import {fileURLToPath} from 'node:url'; import {auditSite} from './audit.js';
+const app=express(), dir=path.dirname(fileURLToPath(import.meta.url)); const reports=new Map(), jobs=new Map(), limits=new Map();
+app.use(helmet({contentSecurityPolicy:false,crossOriginResourcePolicy:false})); app.use(express.json({limit:'20kb'})); app.use(express.static(path.join(dir,'../public')));
+app.get('/api/health',(_,res)=>res.json({ok:true,service:'HI WebCare'}));
+app.post('/api/scans',(req,res)=>{const ip=req.ip, now=Date.now(), recent=(limits.get(ip)||[]).filter(t=>now-t<3600000); if(recent.length>=5)return res.status(429).json({error:'Limite de 5 scans par heure atteinte.'}); limits.set(ip,[...recent,now]); const id=crypto.randomUUID(); jobs.set(id,{id,status:'running',progress:2,message:'Préparation du diagnostic'}); res.status(202).json({id}); auditSite(String(req.body?.url||''),(progress,message)=>jobs.set(id,{id,status:'running',progress,message})).then(report=>{report.id=id;reports.set(id,report);jobs.set(id,{id,status:'complete',progress:100,message:'Rapport prêt'});}).catch(e=>jobs.set(id,{id,status:'failed',progress:100,message:e.name==='AbortError'?'Le site a dépassé le délai autorisé.':e.message}));});
+app.get('/api/scans/:id',(req,res)=>{const job=jobs.get(req.params.id); if(!job)return res.status(404).json({error:'Scan introuvable ou expiré.'}); res.json(job);});
+app.get('/api/reports/:id',(req,res)=>{const r=reports.get(req.params.id); if(!r)return res.status(404).json({error:'Rapport introuvable ou expiré.'});res.json(r);});
+app.get('/report/:id',(_,res)=>res.sendFile(path.join(dir,'../public/index.html'))); app.use((req,res,next)=>req.method==='GET'?res.sendFile(path.join(dir,'../public/index.html')):next());
+setInterval(()=>{const ttl=86400000;for(const [id,r] of reports)if(Date.now()-new Date(r.createdAt)>ttl){reports.delete(id);jobs.delete(id)}},3600000).unref();
+app.listen(process.env.PORT||3000,'0.0.0.0',()=>console.log(`HI WebCare on ${process.env.PORT||3000}`));
