@@ -69,7 +69,7 @@ app.use(
     dotfiles: "deny",
     fallthrough: true,
     index: false,
-    maxAge: "5m",
+    maxAge: 0,
   }),
 );
 
