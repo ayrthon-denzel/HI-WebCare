@@ -1,3 +1,10 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+npm warn exec The following package was not found and will be installed: prettier@3.9.9
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
 import express from "express";
 import archiver from "archiver";
 import helmet from "helmet";
@@ -46,7 +53,9 @@ app.use(
 app.use((req, res, next) => {
   res.setHeader(
     "Cache-Control",
-    req.path.startsWith("/api/") ? "no-store" : "public, max-age=300",
+    req.path.startsWith("/api/")
+      ? "no-store"
+      : "no-cache, no-store, must-revalidate",
   );
   res.setHeader(
     "Permissions-Policy",
