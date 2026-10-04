@@ -1,6 +1,6 @@
 document.head.insertAdjacentHTML(
   "beforeend",
-  '<link rel="stylesheet" href="/report.css"><link rel="stylesheet" href="/concept.css">',
+  '<link rel="stylesheet" href="/report.css">',
 );
 const app = document.querySelector("#app");
 let report = null,
@@ -121,14 +121,9 @@ function bindReport() {
     head.insertAdjacentHTML(
       "afterend",
       redesign.recommended
-        ? `<section class="redesign-offer"><div><span>REFONTE RECOMMANDÉE</span><h2>Ce site mérite une version améliorée.</h2><p>${esc(redesign.message)}</p></div><button class="concept-link" data-concept>Voir la refonte proposée →</button></section>`
+        ? `<section class="redesign-offer"><div class="redesign-summary"><span>REFONTE RECOMMANDÉE</span><h2>Découvrez précisément ce qu’il faut modifier.</h2><p>${esc(redesign.message)}</p><a class="pdf-link" href="/api/reports/${esc(report.id)}/redesign.pdf">Télécharger la proposition de refonte (PDF)</a></div><aside class="redesign-contact"><small>NOUS CONTACTER POUR LA REFONTE</small><strong>HI MARKETING</strong><p>A-D PANIKA<br>CEO / Fondateur</p><p>Tél. : +221 76 900 53 96<br>WhatsApp : +221 78 153 32 25<br>Email : himarketing.africa@gmail.com</p></aside></section>`
         : `<section class="redesign-offer no-redesign"><div><span>OPTIMISATIONS CIBLÉES</span><h2>Une refonte complète n’est pas nécessaire.</h2><p>${esc(redesign.message)}</p></div></section>`,
     );
-    document.querySelector("[data-concept]")?.addEventListener("click", () => {
-      history.pushState({}, "", "/concept/" + report.id);
-      app.innerHTML = conceptView();
-      bindConcept();
-    });
   }
   document.querySelectorAll(".report-actions a").forEach((button) => {
     button.addEventListener("click", (event) => {
@@ -232,20 +227,6 @@ async function loadReport(id, push = false) {
   bindReport();
 }
 async function init() {
-  const concept = location.pathname.match(/^\/concept\/([^/]+)/);
-  if (concept) {
-    await loadReport(concept[1]);
-    if (!report) return;
-    if (!redesignDecision(report).recommended) {
-      history.replaceState({}, "", `/report/${report.id}`);
-      app.innerHTML = reportView();
-      bindReport();
-      return;
-    }
-    app.innerHTML = conceptView();
-    bindConcept();
-    return;
-  }
   const m = location.pathname.match(/^\/report\/([^/]+)/);
   if (!m) {
     app.innerHTML = landing();
