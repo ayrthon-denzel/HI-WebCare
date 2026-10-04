@@ -1,15 +1,10 @@
 import express from "express";
-import archiver from "archiver";
 import helmet from "helmet";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { auditSite } from "./audit.js";
-import {
-  assessRedesign,
-  conceptCss,
-  conceptHtml,
-  conceptReadme,
-} from "./concept-export.js";
+import { assessRedesign } from "./concept-export.js";
+import { streamRedesignPdf } from "./redesign-pdf.js";
 
 const app = express(),
   dir = path.dirname(fileURLToPath(import.meta.url));
@@ -155,29 +150,20 @@ app.get("/api/reports/:id", validId, (req, res) => {
     return res.status(404).json({ error: "Rapport introuvable ou expiré." });
   res.json(report);
 });
-app.get("/api/concepts/:id/download", validId, (req, res, next) => {
+app.get("/api/reports/:id/redesign.pdf", validId, (req, res) => {
   const report = reports.get(req.params.id);
   if (!report)
-    return res.status(404).json({ error: "Concept introuvable ou expiré." });
+    return res.status(404).json({ error: "Rapport introuvable ou expiré." });
   const redesign = report.redesign || assessRedesign(report);
   if (!redesign.recommended)
     return res.status(409).json({
       error: "Ce diagnostic ne recommande pas de refonte complète.",
     });
-  const archive = archiver("zip", { zlib: { level: 9 } });
-  archive.on("error", next);
-  res.attachment(`hi-webcare-refonte-${req.params.id.slice(0, 8)}.zip`);
-  res.type("application/zip");
-  archive.pipe(res);
-  archive.append(conceptHtml(report), { name: "index.html" });
-  archive.append(conceptCss, { name: "style.css" });
-  archive.append(conceptReadme(report), { name: "README.txt" });
-  archive.finalize();
+  res.attachment(`proposition-refonte-${req.params.id.slice(0, 8)}.pdf`);
+  res.type("application/pdf");
+  streamRedesignPdf(report, res);
 });
 app.get("/report/:id", validId, (_, res) =>
-  res.sendFile(path.join(dir, "../public/index.html")),
-);
-app.get("/concept/:id", validId, (_, res) =>
   res.sendFile(path.join(dir, "../public/index.html")),
 );
 app.get("/", (_, res) => res.sendFile(path.join(dir, "../public/index.html")));
