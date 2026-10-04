@@ -103,6 +103,43 @@
   margin: 0;
   color: #c8d0d8;
 }
+.redesign-summary {
+  flex: 1;
+}
+.pdf-link {
+  display: inline-block;
+  margin-top: 22px;
+  padding: 13px 17px;
+  background: #d9b66e;
+  color: #0d1d2c;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+}
+.redesign-contact {
+  width: min(100%, 300px);
+  padding: 20px;
+  border: 1px solid rgba(217, 182, 110, 0.45);
+  background: rgba(255, 255, 255, 0.06);
+}
+.redesign-contact small,
+.redesign-contact strong {
+  display: block;
+}
+.redesign-contact small {
+  color: #d9b66e;
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+.redesign-contact strong {
+  margin-top: 8px;
+  font: 700 19px Manrope;
+}
+.redesign-contact p {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.65;
+}
 .redesign-offer.no-redesign {
   border-color: #dce3e8;
   background: #f5f7f8;
